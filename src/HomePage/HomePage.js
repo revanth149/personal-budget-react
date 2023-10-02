@@ -1,6 +1,9 @@
 import React from 'react';
 import Chart from "chart.js/auto";
 import axios from 'axios';
+import * as d3 from 'd3';
+
+
 const baseURL = "http://localhost:3001";
 function HomePage() {
     var dataSource = {
@@ -28,6 +31,7 @@ function HomePage() {
                 dataSource.labels[i] = response.data.myBudget[i].title;
             }
             createChart();
+            createDonutChart(response.data.myBudget);
         });
       }, []);
 
@@ -44,6 +48,74 @@ function HomePage() {
             data: dataSource
         });
     }
+
+    
+
+    function createDonutChart(data) {
+        // Clear any existing chart elements
+        d3.select('#d3Chart').selectAll('*').remove();
+    
+        // Set up D3 chart dimensions
+        const width = 400;
+        const height = 400;
+        const radius = Math.min(width, height) / 2;
+    
+        // Create an SVG element
+        const svg = d3.select('#d3Chart')
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height)
+            .append('g')
+            .attr('transform', `translate(${width / 2},${height / 2})`);
+    
+        // Define color scale
+        const color = d3.scaleOrdinal()
+            .domain(data.map(d => d.title))
+            .range(dataSource.datasets[0].backgroundColor);
+    
+        // Create a pie chart
+        const pie = d3.pie()
+            .value(d => d.budget);
+    
+        // Create an arc generator for the outer radius
+        const arc = d3.arc()
+            .innerRadius(radius * 0.6) // Set inner radius for donut effect
+            .outerRadius(radius);
+    
+        // Create and append chart elements
+        const path = svg.selectAll('path')
+            .data(pie(data))
+            .enter()
+            .append('path')
+            .attr('d', arc) // Use the arc generator for path
+            .attr('fill', d => color(d.data.title));
+    
+        // Add labels
+        path.append('text')
+            .attr('transform', d => `translate(${arc.centroid(d)})`)
+            .attr('dy', '0.35em')
+            .text(d => `${d.data.title}: $${d.data.budget}`); // Display data
+    
+        // Create a legend
+        const legend = svg.selectAll('.legend')
+            .data(data.map(d => d.title))
+            .enter()
+            .append('g')
+            .attr('class', 'legend')
+            .attr('transform', (d, i) => `translate(-100, ${i * 20})`);
+    
+        legend.append('rect')
+            .attr('width', 18)
+            .attr('height', 18)
+            .style('fill', d => color(d));
+    
+        legend.append('text')
+            .attr('x', 24)
+            .attr('y', 9)
+            .attr('dy', '.35em')
+            .text(d => d);
+    }
+    
   return (
     <main id="main">
 
@@ -107,6 +179,14 @@ function HomePage() {
                 <h1>Charts</h1>
                 <p>
                     <canvas id="myChart" width="200" height="200"></canvas>
+                </p>
+              
+            </div>
+
+            <div class="text-box">
+                <h1>Charts</h1>
+                <p>
+                <div id="d3Chart"></div>
                 </p>
             </div>
   
